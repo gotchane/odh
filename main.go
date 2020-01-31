@@ -14,6 +14,9 @@ var (
 	profile string
 	region string
 	suggests []prompt.Suggest
+	stackId string
+	appId string
+	command string
 )
 
 type Completer struct {
@@ -35,33 +38,35 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 }
 
 var commands = []prompt.Suggest{
-	{Text: "start", Description: "Display one or many resources"},
+	{Text: "deploy", Description: "deploy app"},
+	{Text: "undeploy", Description: "undeploy app"},
 }
 
 func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 	if len(args) <= 1 {
-		return prompt.FilterHasPrefix(suggests, args[0], true)
+		return prompt.FilterHasPrefix(commands, args[0], true)
 	}
 
-	first := args[0]
-	second := args[1]
-	if len(args) == 2 {
-		var stackId string
-		for _, v := range suggests {
-			if v.Text == first {
-				stackId = v.Description
+	command := args[0]
+	switch command {
+	case "deploy", "undeploy":
+		second := args[1]
+		if len(args) == 2 {
+			return prompt.FilterContains(suggests, second, true)
+		}
+
+		third := args[2]
+		if len(args) == 3 {
+			var stackId string
+			for _, v := range suggests {
+				if v.Text == second {
+					stackId = v.Description
+				}
 			}
+			return prompt.FilterHasPrefix(fetchStackApps(stackId), third, true)
 		}
-		return prompt.FilterContains(fetchStackApps(stackId), second, true)
-	}
-
-	third := args[2]
-	if len(args) == 3 {
-		subcommands := []prompt.Suggest{
-			{Text: "deploy"},
-			{Text: "undeploy"},
-		}
-		return prompt.FilterHasPrefix(subcommands, third, true)
+	default:
+		return []prompt.Suggest{}
 	}
 	return []prompt.Suggest{}
 }
