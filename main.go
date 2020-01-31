@@ -13,6 +13,7 @@ import (
 var (
 	profile  string
 	region   string
+	dryRun   bool
 	suggests []prompt.Suggest
 	stackId  string
 	appId    string
@@ -116,6 +117,7 @@ func executeDeploy() {
 func main() {
 	flag.StringVar(&profile, "p", "", "Aws profile")
 	flag.StringVar(&region, "r", "ap-northeast-1", "Aws region")
+	flag.BoolVar(&dryRun, "d", false, "Dry run")
 	flag.Parse()
 
 	if profile == "" {
@@ -138,6 +140,9 @@ func main() {
 		prompt.OptionSuggestionTextColor(prompt.Black),
 		prompt.OptionSuggestionBGColor(prompt.Blue),
 	)
-	fmt.Println(in)
-	//executeDeploy()
+	if (dryRun == true) {
+		fmt.Println(in)
+	} else {
+		executeDeploy()
+	}
 }
