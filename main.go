@@ -38,29 +38,23 @@ var commands = []prompt.Suggest{
 
 func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 	if len(args) <= 1 {
-		return prompt.FilterHasPrefix(commands, args[0], true)
+		return prompt.FilterHasPrefix(suggests, args[0], true)
 	}
 
-	first := args[0]
-	switch first {
-	case "start":
-		second := args[1]
-		if len(args) == 2 {
-			subcommands := []prompt.Suggest{
-				{Text: "get"},
-			}
-			return prompt.FilterHasPrefix(subcommands, second, true)
+	second := args[1]
+	if len(args) == 2 {
+		subcommands := []prompt.Suggest{
+			{Text: "get"},
 		}
+		return prompt.FilterHasPrefix(subcommands, second, true)
+	}
 
-		third := args[2]
-		if len(args) == 3 {
-			switch second {
-			case "g", "get", "gets":
-				return prompt.FilterContains(getSubcommandsuggestions(), third, true)
-			}
+	third := args[2]
+	if len(args) == 3 {
+		switch second {
+		case "g", "get", "gets":
+			return prompt.FilterContains(getSubcommandsuggestions(), third, true)
 		}
-	default:
-		return []prompt.Suggest{}
 	}
 	return []prompt.Suggest{}
 }
