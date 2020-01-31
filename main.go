@@ -1,22 +1,22 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/opsworks"
+	"github.com/c-bata/go-prompt"
 	"strings"
-    "github.com/c-bata/go-prompt"
-    "github.com/aws/aws-sdk-go/aws"
-    "github.com/aws/aws-sdk-go/aws/session"
-    "github.com/aws/aws-sdk-go/service/opsworks"
 )
 
 var (
-	profile string
-	region string
+	profile  string
+	region   string
 	suggests []prompt.Suggest
-	stackId string
-	appId string
-	command string
+	stackId  string
+	appId    string
+	command  string
 )
 
 type Completer struct {
@@ -64,7 +64,7 @@ func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 }
 
 func fetchStackApps(stackId string) []prompt.Suggest {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile:profile}))
+	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile: profile}))
 	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
 	result, err := svc.DescribeApps(&opsworks.DescribeAppsInput{
 		StackId: &stackId,
@@ -75,7 +75,7 @@ func fetchStackApps(stackId string) []prompt.Suggest {
 	var apps []prompt.Suggest
 	for _, v := range result.Apps {
 		apps = append(apps, prompt.Suggest{
-			Text: aws.StringValue(v.AppId),
+			Text:        aws.StringValue(v.AppId),
 			Description: aws.StringValue(v.Name),
 		})
 	}
@@ -83,7 +83,7 @@ func fetchStackApps(stackId string) []prompt.Suggest {
 }
 
 func fetchSuggestStacks(profile, region string) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile:profile}))
+	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile: profile}))
 	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
 	result, err := svc.DescribeStacks(nil)
 	if err != nil {
@@ -91,19 +91,19 @@ func fetchSuggestStacks(profile, region string) {
 	}
 	for _, b := range result.Stacks {
 		suggests = append(suggests, prompt.Suggest{
-			Text: aws.StringValue(b.Name),
+			Text:        aws.StringValue(b.Name),
 			Description: aws.StringValue(b.StackId),
 		})
 	}
 }
 
 func executeDeploy() {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile:profile}))
+	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile: profile}))
 	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
 	str := "deploy"
 	result, err := svc.CreateDeployment(&opsworks.CreateDeploymentInput{
 		StackId: &stackId,
-		AppId: &appId,
+		AppId:   &appId,
 		Command: &opsworks.DeploymentCommand{
 			Name: &str,
 		},
@@ -119,7 +119,7 @@ func main() {
 	flag.StringVar(&region, "r", "ap-northeast-1", "Aws region")
 	flag.Parse()
 
-	if (profile == "") {
+	if profile == "" {
 		fmt.Println("Not existing profile:", profile)
 		flag.Usage()
 		return
@@ -128,7 +128,7 @@ func main() {
 	fetchSuggestStacks(profile, region)
 
 	c := Completer{}
-    in := prompt.Input(
+	in := prompt.Input(
 		">>> ",
 		c.Complete,
 		prompt.OptionTitle("opsworks-helper"),
