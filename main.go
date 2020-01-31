@@ -76,7 +76,6 @@ func fetchStackApps(stackId string) []prompt.Suggest {
 	for _, v := range result.Apps {
 		apps = append(apps, prompt.Suggest{
 			Text:        aws.StringValue(v.AppId),
-			Description: aws.StringValue(v.Name),
 		})
 	}
 	return apps
