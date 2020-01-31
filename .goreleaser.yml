@@ -1,4 +1,3 @@
-project_name: odh
 builds:
 - env:
   - CGO_ENABLED=0
