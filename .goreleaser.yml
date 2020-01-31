@@ -1,0 +1,35 @@
+project_name: odh
+builds:
+- env:
+  - CGO_ENABLED=0
+  - GO111MODULE=on
+archive:
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  skip: true
+brew:
+  name: odh
+  github:
+    owner: gotchane
+    name: homebrew-odh
+  folder: Formula
+  description: "opsworks deploy helper"
+  homepage: "https://github.com/gotchane/odh"
+  commit_author:
+    name: goreleaserbot
+    email: goreleaser@carlosbecker.com
+  dependencies:
+    - go
+  install: |
+    bin.install "odh"
+  test: |
+    system "#{bin}/odh"
