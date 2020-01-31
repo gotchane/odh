@@ -15,15 +15,13 @@ var (
 	region   string
 	dryRun   bool
 	suggests []prompt.Suggest
-	stackId  string
-	appId    string
+	stackID  string
+	appID    string
 	command  string
 )
 
-type Completer struct {
-}
-
-func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
+// complete executes go-prompt suggestions
+func complete(d prompt.Document) []prompt.Suggest {
 	if d.TextBeforeCursor() == "" {
 		return []prompt.Suggest{}
 	}
@@ -34,10 +32,10 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 			return []prompt.Suggest{}
 		}
 	}
-	return c.argumentsCompleter(args)
+	return argumentsCompleter(args)
 }
 
-func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
+func argumentsCompleter(args []string) []prompt.Suggest {
 	if len(args) <= 1 {
 		return prompt.FilterHasPrefix(suggests, args[0], true)
 	}
@@ -47,15 +45,15 @@ func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 	if len(args) == 2 {
 		for _, v := range suggests {
 			if v.Text == first {
-				stackId = v.Description
+				stackID = v.Description
 			}
 		}
-		return prompt.FilterContains(fetchStackApps(stackId), second, true)
+		return prompt.FilterContains(fetchStackApps(stackID), second, true)
 	}
 
 	third := args[2]
 	if len(args) == 3 {
-		appId = second
+		appID = second
 		subcommands := []prompt.Suggest{
 			{Text: "deploy"},
 		}
@@ -64,11 +62,11 @@ func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 	return []prompt.Suggest{}
 }
 
-func fetchStackApps(stackId string) []prompt.Suggest {
+func fetchStackApps(stackID string) []prompt.Suggest {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile: profile}))
 	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
 	result, err := svc.DescribeApps(&opsworks.DescribeAppsInput{
-		StackId: &stackId,
+		StackId: &stackID,
 	})
 	if err != nil {
 		panic(err)
@@ -102,8 +100,8 @@ func executeDeploy() {
 	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
 	str := "deploy"
 	result, err := svc.CreateDeployment(&opsworks.CreateDeploymentInput{
-		StackId: &stackId,
-		AppId:   &appId,
+		StackId: &stackID,
+		AppId:   &appID,
 		Command: &opsworks.DeploymentCommand{
 			Name: &str,
 		},
@@ -128,10 +126,9 @@ func main() {
 
 	fetchSuggestStacks(profile, region)
 
-	c := Completer{}
 	in := prompt.Input(
 		">>> ",
-		c.Complete,
+		complete,
 		prompt.OptionTitle("opsworks-helper"),
 		prompt.OptionHistory(nil),
 		prompt.OptionPrefixTextColor(prompt.Yellow),

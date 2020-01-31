@@ -44,6 +44,26 @@ jobs:
           name: Run goreleaser
           command: curl -sL https://git.io/goreleaser | bash -s -- --rm-dist
 
+  lint:
+    parameters:
+      go-version:
+        type: string
+
+    executor:
+      name: build
+      go-version: << parameters.go-version >>
+
+    steps:
+      - checkout
+
+      - run:
+          name: Install golint
+          command: go get github.com/golang/lint/golint
+
+      - run:
+          name: Run golint
+          command: golint -set_exit_status=1 ./...
+
 workflows:
  release:
     jobs:
