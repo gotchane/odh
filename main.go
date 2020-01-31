@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	profile string
+	region string
 	suggests []prompt.Suggest
 )
 
@@ -41,29 +43,46 @@ func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 		return prompt.FilterHasPrefix(suggests, args[0], true)
 	}
 
+	first := args[0]
 	second := args[1]
 	if len(args) == 2 {
-		subcommands := []prompt.Suggest{
-			{Text: "get"},
+		var stackId string
+		for _, v := range suggests {
+			if v.Text == first {
+				stackId = v.Description
+			}
 		}
-		return prompt.FilterHasPrefix(subcommands, second, true)
+		return prompt.FilterContains(fetchStackApps(stackId), second, true)
 	}
 
 	third := args[2]
 	if len(args) == 3 {
-		switch second {
-		case "g", "get", "gets":
-			return prompt.FilterContains(getSubcommandsuggestions(), third, true)
+		subcommands := []prompt.Suggest{
+			{Text: "deploy"},
+			{Text: "undeploy"},
 		}
+		return prompt.FilterHasPrefix(subcommands, third, true)
 	}
 	return []prompt.Suggest{}
 }
 
-func getSubcommandsuggestions() []prompt.Suggest {
-	s := make([]prompt.Suggest, 2)
-	s[0] = prompt.Suggest{Text: "hoge"}
-	s[1] = prompt.Suggest{Text: "fuga"}
-	return s
+func fetchStackApps(stackId string) []prompt.Suggest {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile:profile}))
+	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
+	result, err := svc.DescribeApps(&opsworks.DescribeAppsInput{
+		StackId: &stackId,
+	})
+	if err != nil {
+		panic(err)
+	}
+	var apps []prompt.Suggest
+	for _, v := range result.Apps {
+		apps = append(apps, prompt.Suggest{
+			Text: aws.StringValue(v.AppId),
+			Description: aws.StringValue(v.Name),
+		})
+	}
+	return apps
 }
 
 func fetchSuggestStacks(profile, region string) {
@@ -74,20 +93,14 @@ func fetchSuggestStacks(profile, region string) {
 		panic(err)
 	}
 	for _, b := range result.Stacks {
-		suggests = append(suggests, prompt.Suggest{Text: aws.StringValue(b.Name)})
+		suggests = append(suggests, prompt.Suggest{
+			Text: aws.StringValue(b.Name),
+			Description: aws.StringValue(b.StackId),
+		})
 	}
 }
 
-func completer(in prompt.Document) []prompt.Suggest {
-    return prompt.FilterHasPrefix(suggests, in.GetWordBeforeCursor(), true)
-}
-
 func main() {
-	var (
-		profile string
-		region string
-	)
-
 	flag.StringVar(&profile, "p", "", "Aws profile")
 	flag.StringVar(&region, "r", "ap-northeast-1", "Aws region")
 	flag.Parse()
