@@ -33,40 +33,32 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 			return []prompt.Suggest{}
 		}
 	}
-
 	return c.argumentsCompleter(args)
-}
-
-var commands = []prompt.Suggest{
-	{Text: "deploy", Description: "deploy app"},
-	{Text: "undeploy", Description: "undeploy app"},
 }
 
 func (c *Completer) argumentsCompleter(args []string) []prompt.Suggest {
 	if len(args) <= 1 {
-		return prompt.FilterHasPrefix(commands, args[0], true)
+		return prompt.FilterHasPrefix(suggests, args[0], true)
 	}
 
-	command := args[0]
-	switch command {
-	case "deploy", "undeploy":
-		second := args[1]
-		if len(args) == 2 {
-			return prompt.FilterContains(suggests, second, true)
-		}
-
-		third := args[2]
-		if len(args) == 3 {
-			var stackId string
-			for _, v := range suggests {
-				if v.Text == second {
-					stackId = v.Description
-				}
+	first := args[0]
+	second := args[1]
+	if len(args) == 2 {
+		for _, v := range suggests {
+			if v.Text == first {
+				stackId = v.Description
 			}
-			return prompt.FilterHasPrefix(fetchStackApps(stackId), third, true)
 		}
-	default:
-		return []prompt.Suggest{}
+		return prompt.FilterContains(fetchStackApps(stackId), second, true)
+	}
+
+	third := args[2]
+	if len(args) == 3 {
+		appId = second
+		subcommands := []prompt.Suggest{
+			{Text: "deploy"},
+		}
+		return prompt.FilterHasPrefix(subcommands, third, true)
 	}
 	return []prompt.Suggest{}
 }
@@ -105,6 +97,23 @@ func fetchSuggestStacks(profile, region string) {
 	}
 }
 
+func executeDeploy() {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{Profile:profile}))
+	svc := opsworks.New(sess, aws.NewConfig().WithRegion(region))
+	str := "deploy"
+	result, err := svc.CreateDeployment(&opsworks.CreateDeploymentInput{
+		StackId: &stackId,
+		AppId: &appId,
+		Command: &opsworks.DeploymentCommand{
+			Name: &str,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(result)
+}
+
 func main() {
 	flag.StringVar(&profile, "p", "", "Aws profile")
 	flag.StringVar(&region, "r", "ap-northeast-1", "Aws region")
@@ -118,18 +127,6 @@ func main() {
 
 	fetchSuggestStacks(profile, region)
 
-    // in := prompt.Input(
-	// 	">>> ",
-	// 	completer,
-	// 	prompt.OptionTitle("opsworks-helper"),
-	// 	prompt.OptionHistory(nil),
-	// 	prompt.OptionPrefixTextColor(prompt.Yellow),
-	// 	prompt.OptionPreviewSuggestionTextColor(prompt.Blue),
-	// 	prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),
-	// 	prompt.OptionSuggestionTextColor(prompt.Black),
-	// 	prompt.OptionSuggestionBGColor(prompt.Blue),
-	// )
-    // fmt.Println("Your input: " + in)
 	c := Completer{}
     in := prompt.Input(
 		">>> ",
@@ -142,5 +139,6 @@ func main() {
 		prompt.OptionSuggestionTextColor(prompt.Black),
 		prompt.OptionSuggestionBGColor(prompt.Blue),
 	)
-    fmt.Println("Your input: " + in)
+	fmt.Println(in)
+	//executeDeploy()
 }
